@@ -10,16 +10,18 @@ import org.launchcode.techjobsauth.models.data.UserRepository;
 import org.launchcode.techjobsauth.models.dto.LoginFormDTO;
 import org.launchcode.techjobsauth.models.dto.RegisterFormDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.Optional;
 
-@Controller
+//@Controller
+@RestController
+@RequestMapping("/api/auth")
 public class AuthenticationController {
     @Autowired
     UserRepository userRepository;
@@ -45,87 +47,146 @@ public class AuthenticationController {
         session.setAttribute(userSessionKey, user.getId());
     }
 
-    @GetMapping("/register")
-    public String displayRegistrationForm(Model model) {
-        model.addAttribute(new RegisterFormDTO());
-        model.addAttribute("title", "Register");
-        return "register";
-    }
-
+    //@GetMapping("/register")
+//    public String displayRegistrationForm(Model model) {
+//        model.addAttribute(new RegisterFormDTO());
+//        model.addAttribute("title", "Register");
+//        return "register";
+//    }
     @PostMapping("/register")
-    public String processRegistrationForm(@ModelAttribute @Valid RegisterFormDTO registerFormDTO,
-                                          Errors errors, HttpServletRequest request,
-                                          Model model) {
-
+    public ResponseEntity<?> processRegistrationForm(@RequestBody @Valid RegisterFormDTO registerFormDTO,
+                                                     Errors errors, HttpServletRequest request) {
         if (errors.hasErrors()) {
-            model.addAttribute("title", "Register");
-            return "register";
+            return ResponseEntity.badRequest().body(errors.getAllErrors());
         }
 
         User existingUser = userRepository.findByUsername(registerFormDTO.getUsername());
 
         if (existingUser != null) {
             errors.rejectValue("username", "username.alreadyexists", "A user with that username already exists");
-            model.addAttribute("title", "Register");
-            return "register";
+            return ResponseEntity.badRequest().body(errors.getAllErrors());
         }
 
         String password = registerFormDTO.getPassword();
         String verifyPassword = registerFormDTO.getVerifyPassword();
         if (!password.equals(verifyPassword)) {
             errors.rejectValue("password", "passwords.mismatch", "Passwords do not match");
-            model.addAttribute("title", "Register");
-            return "register";
+            return ResponseEntity.badRequest().body(errors.getAllErrors());
         }
 
         User newUser = new User(registerFormDTO.getUsername(), registerFormDTO.getPassword());
         userRepository.save(newUser);
         setUserInSession(request.getSession(), newUser);
 
-        return "redirect:";
+        return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
     }
 
-    @GetMapping("/login")
-    public String displayLoginForm(Model model) {
-        model.addAttribute(new LoginFormDTO());
-        model.addAttribute("title", "Log In");
-        return "login";
-    }
+//    @PostMapping("/register")
+//    public String processRegistrationForm(@ModelAttribute @Valid RegisterFormDTO registerFormDTO,
+//                                          Errors errors, HttpServletRequest request,
+//                                          Model model) {
+//
+//        if (errors.hasErrors()) {
+//            model.addAttribute("title", "Register");
+//            return "register";
+//        }
+//
+//        User existingUser = userRepository.findByUsername(registerFormDTO.getUsername());
+//
+//        if (existingUser != null) {
+//            errors.rejectValue("username", "username.alreadyexists", "A user with that username already exists");
+//            model.addAttribute("title", "Register");
+//            return "register";
+//        }
+//
+//        String password = registerFormDTO.getPassword();
+//        String verifyPassword = registerFormDTO.getVerifyPassword();
+//        if (!password.equals(verifyPassword)) {
+//            errors.rejectValue("password", "passwords.mismatch", "Passwords do not match");
+//            model.addAttribute("title", "Register");
+//            return "register";
+//        }
+//
+//        User newUser = new User(registerFormDTO.getUsername(), registerFormDTO.getPassword());
+//        userRepository.save(newUser);
+//        setUserInSession(request.getSession(), newUser);
+//
+//        return "redirect:";
+//    }
+
+//    @GetMapping("/login")
+//    public String displayLoginForm(Model model) {
+//        model.addAttribute(new LoginFormDTO());
+//        model.addAttribute("title", "Log In");
+//        return "login";
+//    }
+
+//    @PostMapping("/login")
+//    public String processLoginForm(@ModelAttribute @Valid LoginFormDTO loginFormDTO,
+//                                   Errors errors, HttpServletRequest request,
+//                                   Model model) {
+//
+//        if (errors.hasErrors()) {
+//            model.addAttribute("title", "Log In");
+//            return "login";
+//        }
+//
+//        User theUser = userRepository.findByUsername(loginFormDTO.getUsername());
+//
+//        if (theUser == null) {
+//            errors.rejectValue("username", "user.invalid", "The given username does not exist");
+//            model.addAttribute("title", "Log In");
+//            return "login";
+//        }
+//
+//        String password = loginFormDTO.getPassword();
+//
+//        if (!theUser.isMatchingPassword(password)) {
+//            errors.rejectValue("password", "password.invalid", "Invalid password");
+//            model.addAttribute("title", "Log In");
+//            return "login";
+//        }
+//
+//        setUserInSession(request.getSession(), theUser);
+//
+//        return "redirect:";
+//    }
 
     @PostMapping("/login")
-    public String processLoginForm(@ModelAttribute @Valid LoginFormDTO loginFormDTO,
-                                   Errors errors, HttpServletRequest request,
-                                   Model model) {
-
+    public ResponseEntity<?> processLoginForm(@RequestBody @Valid LoginFormDTO loginFormDTO,
+                                              Errors errors, HttpServletRequest request) {
         if (errors.hasErrors()) {
-            model.addAttribute("title", "Log In");
-            return "login";
+            return ResponseEntity.badRequest().body(errors.getAllErrors());
         }
 
         User theUser = userRepository.findByUsername(loginFormDTO.getUsername());
 
         if (theUser == null) {
             errors.rejectValue("username", "user.invalid", "The given username does not exist");
-            model.addAttribute("title", "Log In");
-            return "login";
+            return ResponseEntity.badRequest().body(errors.getAllErrors());
         }
 
         String password = loginFormDTO.getPassword();
 
         if (!theUser.isMatchingPassword(password)) {
             errors.rejectValue("password", "password.invalid", "Invalid password");
-            model.addAttribute("title", "Log In");
-            return "login";
+            return ResponseEntity.badRequest().body(errors.getAllErrors());
         }
 
         setUserInSession(request.getSession(), theUser);
 
-        return "redirect:";
+        return ResponseEntity.ok(theUser);
     }
 
-    @GetMapping("/logout")
-    public String logout(HttpServletRequest request){
+//    @GetMapping("/logout")
+//    public String logout(HttpServletRequest request){
+//        request.getSession().invalidate();
+//        return "redirect:/login";
+//    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request){
         request.getSession().invalidate();
-        return "redirect:/login";
+        return ResponseEntity.ok().body("User logged out successfully.");
     }
 }
